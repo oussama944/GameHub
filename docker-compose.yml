@@ -1,0 +1,32 @@
+version: '3.8'
+
+services:
+  quiz-db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: quizdb
+    ports:
+      - "5433:5432"   # hôte:5433 -> conteneur:5432
+    volumes:
+      - quiz-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  quiz-service:
+    build: ./services/quiz-service
+    environment:
+      DATABASE_URL: postgres://postgres:postgres@quiz-db:5432/quizdb
+      PORT: 3000
+    ports:
+      - "3001:3000"   # hôte:3001 -> conteneur:3000
+    depends_on:
+      quiz-db:
+        condition: service_healthy
+
+volumes:
+  quiz-db-data:
