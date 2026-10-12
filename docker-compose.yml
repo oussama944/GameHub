@@ -1,6 +1,5 @@
-version: '3.8'
-
 services:
+  # ---------- Bases de données ----------
   quiz-db:
     image: postgres:16-alpine
     environment:
@@ -8,25 +7,87 @@ services:
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: quizdb
     ports:
-      - "5433:5432"   # hôte:5433 -> conteneur:5432
+      - "5433:5432"
     volumes:
       - quiz-db-data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      test: ["CMD-SHELL", "pg_isready -U postgres -d quizdb"]
       interval: 5s
       timeout: 5s
-      retries: 5
+      retries: 10
 
+  auth-db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: authdb
+    ports:
+      - "5434:5432"
+    volumes:
+      - auth-db-data:/var/lib/postgresql/data
+      - ./initdb/auth-db:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d authdb"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  story-db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: storydb
+    ports:
+      - "5435:5432"
+    volumes:
+      - story-db-data:/var/lib/postgresql/data
+      - ./initdb/story-db:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d storydb"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # ---------- Services applicatifs ----------
   quiz-service:
     build: ./services/quiz-service
     environment:
-      DATABASE_URL: postgres://postgres:postgres@quiz-db:5432/quizdb
       PORT: 3000
+      DATABASE_URL: postgres://postgres:postgres@quiz-db:5432/quizdb
+      JWT_SECRET: supersecret-dev
     ports:
-      - "3001:3000"   # hôte:3001 -> conteneur:3000
+      - "3001:3000"
     depends_on:
       quiz-db:
         condition: service_healthy
 
+  auth-service:
+    build: ./services/auth-service
+    environment:
+      PORT: 3000
+      DATABASE_URL: postgres://postgres:postgres@auth-db:5432/authdb
+      JWT_SECRET: supersecret-dev
+    ports:
+      - "3002:3000"
+    depends_on:
+      auth-db:
+        condition: service_healthy
+
+  story-service:
+    build: ./services/story-service
+    environment:
+      PORT: 3000
+      DATABASE_URL: postgres://postgres:postgres@story-db:5432/storydb
+      JWT_SECRET: supersecret-dev
+    ports:
+      - "3003:3000"
+    depends_on:
+      story-db:
+        condition: service_healthy
+
 volumes:
   quiz-db-data:
+  auth-db-data:
+  story-db-data:
