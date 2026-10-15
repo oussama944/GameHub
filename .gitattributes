@@ -1,0 +1,23 @@
+* text=auto eol=lf
+
+# Scripts : LF sur Linux, CRLF sur Windows (mais Git stocke en LF)
+*.sh          text eol=lf
+*.bash        text eol=lf
+*.ps1         text eol=crlf
+
+# Docker & K8s : LF strict (parsés dans des conteneurs Linux)
+Dockerfile    text eol=lf
+*.dockerfile  text eol=lf
+*.yml         text eol=lf
+*.yaml        text eol=lf
+
+# Python : LF strict
+*.py          text eol=lf
+
+# Docs
+*.md          text eol=lf
+
+# Binaires : pas de conversion
+*.png binary
+*.jpg binary
+*.pdf binary
