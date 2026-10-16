@@ -1,5 +1,41 @@
+# ===== Node.js =====
 node_modules/
-.env
 dist/
 coverage/
 *.log
+
+# ===== Python =====
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.coverage
+htmlcov/
+*.egg-info/
+
+# ===== Env (secrets, config machine) =====
+.env
+.env.local
+.env.*.local
+
+# ===== Docker =====
+docker-compose.override.yml
+
+# ===== OS =====
+Thumbs.db
+desktop.ini
+*.lnk
+.DS_Store
+*~
+
+# ===== IDE =====
+.vscode/settings.json
+.vscode/launch.json
+.idea/
+*.swp
+
+# ===== Build artifacts =====
+build/
+tmp/
+.cache/

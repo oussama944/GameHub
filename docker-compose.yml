@@ -1,5 +1,7 @@
 services:
-  # ---------- Bases de données ----------
+  # ============================================================
+  # BASES DE DONNÉES (inchangé)
+  # ============================================================
   quiz-db:
     image: postgres:16-alpine
     environment:
@@ -50,13 +52,16 @@ services:
       timeout: 5s
       retries: 10
 
-  # ---------- Services applicatifs ----------
+  # ============================================================
+  # SERVICES EXISTANTS
+  # ============================================================
   quiz-service:
     build: ./services/quiz-service
+    container_name: gamehub-quiz
     environment:
       PORT: 3000
       DATABASE_URL: postgres://postgres:postgres@quiz-db:5432/quizdb
-      JWT_SECRET: supersecret-dev
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET required in .env}
     ports:
       - "3001:3000"
     depends_on:
@@ -65,27 +70,68 @@ services:
 
   auth-service:
     build: ./services/auth-service
+    container_name: gamehub-auth
     environment:
       PORT: 3000
       DATABASE_URL: postgres://postgres:postgres@auth-db:5432/authdb
-      JWT_SECRET: supersecret-dev
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET required in .env}
     ports:
       - "3002:3000"
     depends_on:
       auth-db:
         condition: service_healthy
 
+  # ⚠️ story-service CONSERVÉ (Reco A — coexistence)
   story-service:
     build: ./services/story-service
+    container_name: gamehub-story
     environment:
       PORT: 3000
       DATABASE_URL: postgres://postgres:postgres@story-db:5432/storydb
-      JWT_SECRET: supersecret-dev
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET required in .env}
     ports:
       - "3003:3000"
     depends_on:
       story-db:
         condition: service_healthy
+
+  # ============================================================
+  # NOUVEAU — AI Story Engine (semaine 3)
+  # ============================================================
+  ai-story-engine:
+    build:
+      context: ./services/ai-story-engine
+      dockerfile: Dockerfile
+    image: gamehub/ai-story-engine:local
+    container_name: gamehub-ai-story
+    restart: unless-stopped
+    environment:
+      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET required in .env}
+      AUTH_REQUIRED: ${AUTH_REQUIRED:-true}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      LIGHT_MODEL: ${LIGHT_MODEL:-qwen2.5:0.5b}
+      HEAVY_MODEL: ${HEAVY_MODEL:-llama3.2:1b}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    ports:
+      - "3004:3004"
+    depends_on:
+      auth-service:
+        condition: service_started
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: "1.0"
+        reservations:
+          memory: 128M
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:3004/health"]
+      interval: 20s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
 
 volumes:
   quiz-db-data:
